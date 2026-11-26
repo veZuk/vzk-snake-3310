@@ -1,51 +1,55 @@
 # SHMOKIA 3310 — Snake II (Three.js)
 
-Интерактивный 3D-клон классической кнопочной «Змейки II» на **Three.js 0.187.0** и **Vite 8** с пародийным брендингом **SHMOKIA 3310**.
+[Русская версия](README.ru.md)
 
-**Онлайн-демо (GitHub Pages):** https://vezuk.github.io/vzk-snake-3310/
+An interactive 3D clone of classic retro keypad **Snake II** built from scratch with **Three.js 0.187.0** and **Vite 8** under parody **SHMOKIA 3310** branding.
 
-## Что внутри
+**Live demo (GitHub Pages):** https://vezuk.github.io/vzk-snake-3310/
 
-- **Процедурная 3D-модель кнопочного телефона 3310** (`src/scene/phone-3310.js`, `src/scene/stage.js`):
-  - Скульптурный корпус со сменными панелями (Midnight Blue, Arctic Silver, Deep Red, Sahara Yellow), серебристая рамка вокруг экрана, прорези динамика, шильдик `SHMOKIA`, защитное акриловое стекло с clearcoat-отражением.
-  - Интерактивные 3D-кнопки (Navi, `C`, `▲`/`▼` и цифровая клавиатура `1–9`, `*`, `0`, `#` с двойной латинско-кириллической раскладкой `abc/абвг` … `wxyz/ьэюя`) — нажимаются мышкой/тапом по 3D-модели и физически проседают при нажатии с клавиатуры.
-  - Три режима камеры (`Игра`, `Экран`, `3D` со свободным `OrbitControls`) и переключатель языка `RU / EN` для интерфейса и пиксельного меню на экране.
-- **Аутентичный 84×48 STN LCD на кастомном GLSL-шейдере** (`src/lcd/lcd-renderer.js`, `src/lcd/font-5px.js`):
-  - Честный 1-битный буфер **84×48 пикселей** с матричной сеткой субпикселей, лёгкой тенью от жидких кристаллов на отражающую подложку, инерцией (ghosting) и зелёной светодиодной подсветкой (`LED` вкл/выкл).
-  - Пиксельное меню (`New game` / `Continue`, `Level 1..9`, `Mazes` с живым мини-превью лабиринтов, `Top score`, `Sound`).
-- **Механика Snake II** (`src/game/snake-engine.js`, `src/game/mazes.js`):
-  - 6 лабиринтов (`No maze`, `Box`, `Tunnel`, `Mill`, `Rails`, `Apartment`), 9 уровней скорости.
-  - Буфер поворотов на 2 шага, 1-тиковый grace-период у стен/хвоста, анимация открытой пасти перед едой, утолщение проглоченной еды по телу змейки и бонусные существа каждые 5 яблок с обратным отсчётом.
-  - Рекорды сохраняются в `localStorage`.
-- **Пьезодинамик на Web Audio API** (`src/audio/piezo-synth.js`): процедурный синтез характерных звуков пьезоизлучателя без внешних аудиофайлов.
+## Highlights
 
-## Управление
+- **Procedural 3D 3310 handset** (`src/scene/phone-3310.js`, `src/scene/stage.js`):
+  - Sculpted body with swappable faceplates (Midnight Blue, Arctic Silver, Deep Red, Sahara Yellow), silver inner bezel, earpiece slots, `SHMOKIA` badge, and a clearcoat protective acrylic lens.
+  - Tactile interactive 3D keypad (Navi, `C`, `▲`/`▼`, and `1–9`, `*`, `0`, `#` with dual Latin/Cyrillic `abc/абвг` … `wxyz/ьэюя` legends) — clickable/tappable directly on the 3D model and physically depressed when driven from the keyboard.
+  - Three camera presets (`Play`, `Screen`, `3D` with free `OrbitControls`) and an instant **`RU / EN`** toggle covering both the outer HUD and the 84×48 pixel menus.
+- **84×48 monochrome STN LCD shader** (`src/lcd/lcd-renderer.js`, `src/lcd/font-5px.js`):
+  - True 1-bit **84×48** pixel framebuffer with sub-pixel dot-matrix grid, subtle liquid-crystal drop-shadow onto the reflective backing, response inertia (ghosting), and switchable green LED backlighting (`LED`).
+  - Pixel-accurate menus (`New game` / `Continue`, `Level 1..9`, `Mazes` with live miniature previews, `Top score`, `Sound`) with custom 5px Latin and Cyrillic bitmap fonts.
+- **Classic Snake II mechanics** (`src/game/snake-engine.js`, `src/game/mazes.js`):
+  - 6 mazes (`No maze`, `Box`, `Tunnel`, `Mill`, `Rails`, `Apartment`) and 9 speed levels.
+  - 2-step turn buffer, 1-tick collision grace window at walls/body (including 2-step U-turn rescue), open-mouth bite animation, travelling belly bulge for swallowed food, and timed bonus critters every 5 apples.
+  - High scores and language preference persisted in `localStorage` (with automatic in-memory fallback when storage is restricted).
+- **Procedural Web Audio piezo buzzer** (`src/audio/piezo-synth.js`): retro ceramic-buzzer sound synthesis with zero external audio assets.
 
-| Действие | Клавиатура | 3D-телефон |
+## Controls
+
+| Action | Keyboard | 3D Handset |
 |---|---|---|
-| Поворот / навигация | `↑ ↓ ← →`, `W A S D`, `2 4 6 8` | Кнопки `2`, `4`, `6`, `8`, `▲`, `▼` |
-| Старт / выбор / пауза | `Enter`, `Space`, `5` | Клавиша Navi / `5` |
-| Назад / пауза | `Esc`, `P`, `C` | Клавиша `C` |
-| Сменить камеру | `V` | Кнопки `Игра` / `Экран` / `3D` |
-| Подсветка LCD | `L` | Кнопка `LED` / клавиша `*` |
-| Звук | `M` | Кнопка `Звук` / клавиша `#` |
+| Steer / navigate | `↑ ↓ ← →`, `W A S D`, `2 4 6 8` | Keys `2`, `4`, `6`, `8`, `▲`, `▼` |
+| Start / select / pause | `Enter`, `Space`, `5` | Navi key / `5` |
+| Back / pause | `Esc`, `P`, `C` | Key `C` |
+| Switch camera | `V` | `Play` / `Screen` / `3D` buttons |
+| LCD backlight | `L` | `LED` button / key `*` |
+| Sound | `M` | `Sound` button / key `#` |
 
-## Локальный запуск и проверка
+Touchscreens also support direct taps on the 3D keys and swipe gestures in `Play` / `Screen` views.
 
-Требуется Node.js 20+.
+## Local development & checks
+
+Requires Node.js 20+.
 
 ```bash
 npm install
 npm run dev
 ```
 
-Проверки симуляции/лабиринтов и 84×48 LCD-буфера, а также production-сборка:
+Run simulation, maze, and 84×48 LCD checks, or build the production bundle (`dist/`):
 
 ```bash
 npm run check
 npm run build
 ```
 
-## Лицензия
+## License
 
-Проект передан в общественное достояние по лицензии [The Unlicense](LICENSE) — можно свободно использовать, изменять и распространять без ограничений.
+Released into the public domain under [The Unlicense](LICENSE) — free to use, modify, and distribute without restriction.
