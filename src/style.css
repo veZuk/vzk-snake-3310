@@ -20,12 +20,14 @@ body,
 #app {
   width: 100%;
   height: 100%;
+  height: 100dvh;
   overflow: hidden;
   background: radial-gradient(circle at 50% 35%, #162033 0%, #0b1019 68%, #070a10 100%);
   font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
   color: var(--text);
   user-select: none;
   -webkit-user-select: none;
+  -webkit-touch-callout: none;
 }
 
 #scene-canvas {
@@ -39,15 +41,15 @@ body,
 
 .hud-top {
   position: fixed;
-  top: 14px;
-  left: 16px;
-  right: 16px;
+  top: calc(12px + env(safe-area-inset-top));
+  left: calc(14px + env(safe-area-inset-left));
+  right: calc(14px + env(safe-area-inset-right));
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
   pointer-events: none;
-  z-index: 10;
+  z-index: 12;
 }
 
 .brand {
@@ -177,13 +179,205 @@ body,
 
 .hud-bottom {
   position: fixed;
-  left: 16px;
-  right: 16px;
-  bottom: 14px;
+  left: calc(14px + env(safe-area-inset-left));
+  right: calc(14px + env(safe-area-inset-right));
+  bottom: calc(12px + env(safe-area-inset-bottom));
   display: flex;
   justify-content: center;
   pointer-events: none;
   z-index: 10;
+}
+
+body.pad-visible .hud-bottom {
+  display: none;
+}
+
+/* Ergonomic on-screen mobile touch controller */
+.touch-pad {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 28px calc(22px + env(safe-area-inset-right)) calc(18px + env(safe-area-inset-bottom)) calc(22px + env(safe-area-inset-left));
+  background: linear-gradient(
+    180deg,
+    rgba(8, 13, 22, 0) 0%,
+    rgba(8, 13, 22, 0.84) 24%,
+    rgba(8, 13, 22, 0.97) 100%
+  );
+  pointer-events: none;
+  z-index: 11;
+}
+
+@media (min-width: 520px) and (min-height: 501px) {
+  .touch-pad {
+    max-width: 480px;
+    margin: 0 auto;
+    border-radius: 28px 28px 0 0;
+  }
+}
+
+.touch-pad[hidden] {
+  display: none;
+}
+
+.dpad {
+  display: grid;
+  grid-template-columns: repeat(3, 56px);
+  grid-template-rows: repeat(3, 56px);
+  pointer-events: auto;
+  touch-action: none;
+  filter: drop-shadow(0 10px 24px rgba(0, 0, 0, 0.5));
+}
+
+.dpad-btn {
+  appearance: none;
+  border: 1px solid rgba(176, 200, 232, 0.24);
+  background: rgba(16, 24, 39, 0.86);
+  color: #dce6f5;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  touch-action: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 70ms ease, border-color 70ms ease, transform 70ms ease, color 70ms ease;
+}
+
+.dpad-btn svg {
+  width: 24px;
+  height: 24px;
+  fill: currentColor;
+  pointer-events: none;
+}
+
+.dpad-up {
+  grid-column: 2;
+  grid-row: 1;
+  border-radius: 16px 16px 4px 4px;
+  border-bottom: 0;
+}
+
+.dpad-left {
+  grid-column: 1;
+  grid-row: 2;
+  border-radius: 16px 4px 4px 16px;
+  border-right: 0;
+}
+
+.dpad-center {
+  grid-column: 2;
+  grid-row: 2;
+  background: rgba(16, 24, 39, 0.86);
+  display: grid;
+  place-items: center;
+}
+
+.dpad-center span {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: rgba(154, 179, 214, 0.14);
+  border: 1px solid rgba(154, 179, 214, 0.18);
+}
+
+.dpad-right {
+  grid-column: 3;
+  grid-row: 2;
+  border-radius: 4px 16px 16px 4px;
+  border-left: 0;
+}
+
+.dpad-down {
+  grid-column: 2;
+  grid-row: 3;
+  border-radius: 4px 4px 16px 16px;
+  border-top: 0;
+}
+
+.dpad-btn.pressed {
+  background: rgba(166, 226, 54, 0.24);
+  border-color: rgba(166, 226, 54, 0.72);
+  color: var(--accent);
+  transform: scale(0.95);
+}
+
+.pad-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  pointer-events: auto;
+  touch-action: none;
+  filter: drop-shadow(0 10px 24px rgba(0, 0, 0, 0.45));
+}
+
+.pad-act-btn {
+  appearance: none;
+  width: 96px;
+  min-height: 60px;
+  padding: 10px 12px;
+  border-radius: 20px;
+  border: 1px solid rgba(176, 200, 232, 0.25);
+  background: rgba(16, 24, 39, 0.88);
+  color: #e6eef9;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  cursor: pointer;
+  touch-action: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 70ms ease, border-color 70ms ease, transform 70ms ease;
+}
+
+.pad-act-select {
+  min-height: 68px;
+  border-color: rgba(88, 152, 235, 0.5);
+  background: rgba(20, 34, 58, 0.9);
+}
+
+.pad-navi-bar {
+  width: 44px;
+  height: 7px;
+  border-radius: 999px;
+  background: #4e8ce0;
+  box-shadow: 0 0 10px rgba(78, 140, 224, 0.55);
+}
+
+.pad-c-glyph {
+  font-size: 18px;
+  font-weight: 800;
+  line-height: 1;
+  color: #d6e1f2;
+}
+
+.pad-act-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+
+.pad-act-btn.pressed {
+  background: rgba(166, 226, 54, 0.22);
+  border-color: rgba(166, 226, 54, 0.75);
+  transform: scale(0.95);
+}
+
+.pad-act-btn.pressed .pad-act-label,
+.pad-act-btn.pressed .pad-c-glyph {
+  color: var(--accent);
+}
+
+.dpad-btn:focus-visible,
+.pad-act-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 .controls-hint {
@@ -249,6 +443,7 @@ body,
   }
   #group-cam,
   #group-lang,
+  #btn-pad,
   #btn-backlight,
   #btn-sound {
     order: 3;
@@ -278,18 +473,67 @@ body,
   }
 }
 
+@media (max-width: 375px) {
+  .touch-pad {
+    padding: 22px 14px calc(12px + env(safe-area-inset-bottom)) 14px;
+  }
+  .dpad {
+    grid-template-columns: repeat(3, 50px);
+    grid-template-rows: repeat(3, 50px);
+  }
+  .pad-act-btn {
+    width: 84px;
+    min-height: 54px;
+  }
+  .pad-act-select {
+    min-height: 60px;
+  }
+}
+
 @media (max-height: 500px) {
+  .brand-sub {
+    display: none;
+  }
+  .brand {
+    padding: 5px 10px;
+    white-space: nowrap;
+  }
   .hud-top {
-    top: 6px;
-    left: 10px;
-    right: 10px;
+    top: calc(6px + env(safe-area-inset-top));
+    left: calc(10px + env(safe-area-inset-left));
+    right: calc(10px + env(safe-area-inset-right));
+    align-items: flex-start;
+  }
+  .hud-actions {
+    gap: 5px;
+  }
+  .segmented button,
+  .icon-btn {
+    font-size: 11px;
+    padding: 5px 8px;
   }
   .hud-bottom {
-    bottom: 6px;
+    bottom: calc(6px + env(safe-area-inset-bottom));
   }
   .controls-hint {
     padding: 4px 11px;
     font-size: 10.5px;
+  }
+  .touch-pad {
+    max-width: none;
+    background: none;
+    padding: 0 calc(14px + env(safe-area-inset-right)) calc(12px + env(safe-area-inset-bottom)) calc(14px + env(safe-area-inset-left));
+  }
+  .dpad {
+    grid-template-columns: repeat(3, 48px);
+    grid-template-rows: repeat(3, 48px);
+  }
+  .pad-act-btn {
+    width: 80px;
+    min-height: 52px;
+  }
+  .pad-act-select {
+    min-height: 58px;
   }
 }
 

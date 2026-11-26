@@ -258,6 +258,21 @@ function createKeyLabelTexture({
         ctx.textAlign = 'right';
         ctx.fillText(secondary, 224, 84);
       }
+    } else if (primary === '__arrow_up__' || primary === '__arrow_down__') {
+      // Crisp vector scroll arrows on the 3310 diagonal rocker keys
+      ctx.fillStyle = fg;
+      ctx.beginPath();
+      if (primary === '__arrow_up__') {
+        ctx.moveTo(128, 44);
+        ctx.lineTo(166, 112);
+        ctx.lineTo(90, 112);
+      } else {
+        ctx.moveTo(128, 116);
+        ctx.lineTo(166, 48);
+        ctx.lineTo(90, 48);
+      }
+      ctx.closePath();
+      ctx.fill();
     } else {
       ctx.font = '800 78px "Segoe UI", Arial, sans-serif';
       ctx.textAlign = 'center';
@@ -401,6 +416,7 @@ export class Phone3310 {
     // Key registry for raycast picking & press animations
     this.keys = new Map();
     this.interactiveMeshes = [];
+    this.hitMeshes = [];
 
     this.backlightTarget = 1.0;
     this.backlightValue = 1.0;
@@ -480,6 +496,13 @@ export class Phone3310 {
       reflectivity: 0.9,
       envMapIntensity: 1.45,
       depthWrite: false,
+    });
+
+    this.hitColliderMat = new THREE.MeshBasicMaterial({
+      transparent: true,
+      opacity: 0,
+      depthWrite: false,
+      colorWrite: false,
     });
   }
 
@@ -711,6 +734,20 @@ export class Phone3310 {
 
     this.root.add(mesh);
     this.interactiveMeshes.push(mesh);
+
+    // Forgiving invisible touch-hit plane slightly larger than keycap for reliable mobile finger taps
+    const padX = id === 'up' || id === 'down' ? 0.14 : 0.18;
+    const padY = id === 'up' || id === 'down' ? 0.22 : 0.20;
+    const hitPlane = new THREE.Mesh(
+      new THREE.PlaneGeometry(width + padX, height + padY),
+      this.hitColliderMat,
+    );
+    hitPlane.position.set(x, y, z + depth + 0.065);
+    hitPlane.rotation.z = rotZ;
+    hitPlane.userData.keyId = id;
+    this.root.add(hitPlane);
+    this.hitMeshes.push(hitPlane);
+
     this.keys.set(id, {
       mesh,
       restZ: z,
@@ -722,60 +759,60 @@ export class Phone3310 {
   }
 
   _buildKeypad() {
-    // 1. Center Navi key (Start / Select / Pause) right below the LCD
+    // 1. Center Navi key (Start / Select / Pause) aligned directly beneath the LCD softkey
     this._createButton({
       id: 'select',
-      width: 1.56,
-      height: 0.48,
-      radius: 0.22,
+      width: 1.66,
+      height: 0.44,
+      radius: 0.21,
       depth: 0.13,
       x: 0,
-      y: 0.56,
+      y: 0.62,
       z: 0.91,
       labelOptions: { isNavi: true, accent: '#2c5da1' },
       emissiveGlow: false,
     });
 
-    // 2. Left 'C' key (Back / Pause)
+    // 2. Left 'C' key (Back / Pause) following the lower-left silver bezel arc
     this._createButton({
       id: 'back',
-      width: 0.94,
-      height: 0.44,
-      radius: 0.2,
+      width: 0.86,
+      height: 0.40,
+      radius: 0.19,
       depth: 0.12,
-      x: -1.06,
-      y: -0.02,
+      x: -0.98,
+      y: -0.01,
       z: 0.90,
-      rotZ: -0.22,
+      rotZ: -0.26,
       labelOptions: { primary: 'C', fg: '#23314a', bg: '#cfd6e0' },
       emissiveGlow: false,
     });
 
-    // 3. Right Up/Down angled rocker buttons (classic 3310 scroll keys)
+    // 3. Right diagonal scroll rocker: ergonomically ▼ (Down) sits lower-inner, ▲ (Up) sits upper-outer
     this._createButton({
-      id: 'up',
-      width: 0.68,
-      height: 0.40,
+      id: 'down',
+      width: 0.70,
+      height: 0.38,
       radius: 0.18,
       depth: 0.12,
-      x: 0.60,
-      y: -0.08,
+      x: 0.46,
+      y: -0.12,
       z: 0.90,
-      rotZ: 0.16,
-      labelOptions: { primary: '▲', fg: '#23314a', bg: '#cfd6e0' },
+      rotZ: 0.18,
+      labelOptions: { primary: '__arrow_down__', fg: '#23314a', bg: '#cfd6e0' },
       emissiveGlow: false,
     });
     this._createButton({
-      id: 'down',
-      width: 0.68,
-      height: 0.40,
+      id: 'up',
+      width: 0.70,
+      height: 0.38,
       radius: 0.18,
       depth: 0.12,
-      x: 1.42,
-      y: 0.08,
+      x: 1.26,
+      y: 0.14,
       z: 0.90,
-      rotZ: 0.28,
-      labelOptions: { primary: '▼', fg: '#23314a', bg: '#cfd6e0' },
+      rotZ: 0.36,
+      labelOptions: { primary: '__arrow_up__', fg: '#23314a', bg: '#cfd6e0' },
       emissiveGlow: false,
     });
 

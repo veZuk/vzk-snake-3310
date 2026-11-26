@@ -2,7 +2,7 @@
 <html lang="ru">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
     <link
       rel="icon"
       type="image/svg+xml"
@@ -32,6 +32,9 @@
             <button type="button" data-lang="en" aria-pressed="false" title="English language">EN</button>
           </div>
 
+          <button type="button" id="btn-pad" class="icon-btn" aria-pressed="false" title="Экранный пульт управления (G)">
+            Пульт
+          </button>
           <button type="button" id="btn-backlight" class="icon-btn active" aria-pressed="true" title="Подсветка LCD (L)">
             LED
           </button>
@@ -47,6 +50,35 @@
           </div>
         </div>
       </header>
+
+      <section id="touch-pad" class="touch-pad" role="group" aria-label="Экранный пульт" hidden>
+        <div id="dpad-zone" class="dpad" aria-label="Крестовина управления">
+          <button type="button" class="dpad-btn dpad-up" data-pad-dir="up" aria-label="Вверх">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 6l7 10H5z"/></svg>
+          </button>
+          <button type="button" class="dpad-btn dpad-left" data-pad-dir="left" aria-label="Влево">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 12l10-7v14z"/></svg>
+          </button>
+          <div class="dpad-center" aria-hidden="true"><span></span></div>
+          <button type="button" class="dpad-btn dpad-right" data-pad-dir="right" aria-label="Вправо">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 12L8 5v14z"/></svg>
+          </button>
+          <button type="button" class="dpad-btn dpad-down" data-pad-dir="down" aria-label="Вниз">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 18L5 8h14z"/></svg>
+          </button>
+        </div>
+
+        <div class="pad-actions">
+          <button type="button" class="pad-act-btn pad-act-select" data-pad-action="select" aria-label="Выбор / Старт / Пауза">
+            <span class="pad-navi-bar" aria-hidden="true"></span>
+            <span class="pad-act-label" id="pad-label-select">ОК</span>
+          </button>
+          <button type="button" class="pad-act-btn pad-act-back" data-pad-action="back" aria-label="Назад / Пауза">
+            <span class="pad-c-glyph" aria-hidden="true">C</span>
+            <span class="pad-act-label" id="pad-label-back">Назад</span>
+          </button>
+        </div>
+      </section>
 
       <footer class="hud-bottom">
         <div class="controls-hint">

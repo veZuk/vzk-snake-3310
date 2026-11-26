@@ -14,8 +14,10 @@ const OPPOSITE = {
   right: 'left',
 };
 
-// Classic 3310 Snake II step durations (ms) for Levels 1..9
-export const LEVEL_STEP_MS = [280, 235, 195, 162, 135, 112, 93, 77, 64];
+// Classic 3310 Snake II constant step durations (ms) for Levels 1..9
+// Factory default is Level 3 (255 ms/step): approachable for newcomers, scaling smoothly up to Level 9 (70 ms/step)
+export const DEFAULT_LEVEL = 3;
+export const LEVEL_STEP_MS = [420, 330, 255, 200, 160, 130, 105, 86, 70];
 
 export const BONUS_TYPES = ['mouse', 'spider', 'bug', 'fish', 'frog'];
 export const BONUS_INTERVAL = 5;
@@ -39,7 +41,7 @@ export function createMemoryStorage() {
 function loadHighScore(storage) {
   try {
     const raw = storage?.getItem('snake3310_topscore');
-    if (!raw) return { score: 0, mazeIndex: 0, level: 5 };
+    if (!raw) return { score: 0, mazeIndex: 0, level: DEFAULT_LEVEL };
     const parsed = JSON.parse(raw);
     const normalizedMaze = Number.isInteger(parsed.mazeIndex)
       ? ((parsed.mazeIndex % MAZES.length) + MAZES.length) % MAZES.length
@@ -47,16 +49,41 @@ function loadHighScore(storage) {
     return {
       score: Number.isFinite(parsed.score) ? Math.max(0, Math.floor(parsed.score)) : 0,
       mazeIndex: normalizedMaze,
-      level: Number.isInteger(parsed.level) ? Math.min(9, Math.max(1, parsed.level)) : 5,
+      level: Number.isInteger(parsed.level) ? Math.min(9, Math.max(1, parsed.level)) : DEFAULT_LEVEL,
     };
   } catch {
-    return { score: 0, mazeIndex: 0, level: 5 };
+    return { score: 0, mazeIndex: 0, level: DEFAULT_LEVEL };
   }
 }
 
 function saveHighScore(storage, record) {
   try {
     storage?.setItem('snake3310_topscore', JSON.stringify(record));
+  } catch {
+    // Ignore storage quota or restricted environments
+  }
+}
+
+function loadPrefs(storage) {
+  try {
+    const raw = storage?.getItem('snake3310_prefs');
+    if (!raw) return { level: DEFAULT_LEVEL, mazeIndex: 0 };
+    const parsed = JSON.parse(raw);
+    const normalizedMaze = Number.isInteger(parsed.mazeIndex)
+      ? ((parsed.mazeIndex % MAZES.length) + MAZES.length) % MAZES.length
+      : 0;
+    return {
+      level: Number.isInteger(parsed.level) ? Math.min(9, Math.max(1, parsed.level)) : DEFAULT_LEVEL,
+      mazeIndex: normalizedMaze,
+    };
+  } catch {
+    return { level: DEFAULT_LEVEL, mazeIndex: 0 };
+  }
+}
+
+function savePrefs(storage, prefs) {
+  try {
+    storage?.setItem('snake3310_prefs', JSON.stringify(prefs));
   } catch {
     // Ignore storage quota or restricted environments
   }
@@ -70,9 +97,10 @@ export class SnakeEngine {
 
     const saved = loadHighScore(this.storage);
     this.highScore = saved;
+    const savedPrefs = loadPrefs(this.storage);
 
-    this.level = options.level ?? 5; // 1..9
-    this.mazeIndex = options.mazeIndex ?? 0;
+    this.level = options.level ?? savedPrefs.level; // 1..9
+    this.mazeIndex = options.mazeIndex ?? savedPrefs.mazeIndex;
     this.soundEnabled = options.soundEnabled ?? true;
 
     this.mode = options.skipSplash ? 'menu' : 'splash';
@@ -354,6 +382,7 @@ export class SnakeEngine {
         if (next !== this.level) {
           this.level = next;
           this._discardPausedGameForSettingChange();
+          savePrefs(this.storage, { level: this.level, mazeIndex: this.mazeIndex });
         }
         this._emit('nav');
       } else if (dir === 'left' || dir === 'down') {
@@ -361,6 +390,7 @@ export class SnakeEngine {
         if (next !== this.level) {
           this.level = next;
           this._discardPausedGameForSettingChange();
+          savePrefs(this.storage, { level: this.level, mazeIndex: this.mazeIndex });
         }
         this._emit('nav');
       }
@@ -371,10 +401,12 @@ export class SnakeEngine {
       if (dir === 'down' || dir === 'right') {
         this.mazeIndex = (this.mazeIndex + 1) % MAZES.length;
         this._discardPausedGameForSettingChange();
+        savePrefs(this.storage, { level: this.level, mazeIndex: this.mazeIndex });
         this._emit('nav');
       } else if (dir === 'up' || dir === 'left') {
         this.mazeIndex = (this.mazeIndex - 1 + MAZES.length) % MAZES.length;
         this._discardPausedGameForSettingChange();
+        savePrefs(this.storage, { level: this.level, mazeIndex: this.mazeIndex });
         this._emit('nav');
       }
     }

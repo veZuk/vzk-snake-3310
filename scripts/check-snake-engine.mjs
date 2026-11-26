@@ -351,4 +351,25 @@ for (const maze of MAZES) {
   assert.deepEqual(engine.segments[0], { x: 18, y: 3 });
 }
 
+// 11. Default beginner-friendly Level 3 speed & level/maze preference persistence
+{
+  const storage = createMemoryStorage();
+  const engine1 = new SnakeEngine({ rng: makeDeterministicRng(10), storage, skipSplash: true });
+  assert.equal(engine1.level, 3);
+  assert.equal(engine1.stepMs, 255);
+  // Navigate to Level submenu and increase to 4, then Mazes and select Box
+  engine1.setDirection('down'); // level
+  engine1.pressSelect();
+  engine1.setDirection('right'); // level 4
+  engine1.pressSelect();
+  engine1.setDirection('down'); // mazes
+  engine1.pressSelect();
+  engine1.setDirection('right'); // Box (index 1)
+  engine1.pressSelect();
+
+  const engine2 = new SnakeEngine({ rng: makeDeterministicRng(10), storage, skipSplash: true });
+  assert.equal(engine2.level, 4);
+  assert.equal(engine2.mazeIndex, 1);
+}
+
 console.log(`check-snake-engine: OK (${MAZES.length} mazes validated, all mechanics passed)`);

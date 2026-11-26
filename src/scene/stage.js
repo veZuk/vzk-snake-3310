@@ -26,6 +26,7 @@ export class PhoneStage {
     this.onKeyClick = onKeyClick;
 
     this.cameraMode = 'play'; // 'play' | 'closeup' | 'orbit'
+    this.touchPadVisible = false;
     this.pointerNdc = new THREE.Vector2(0, 0);
     this.parallaxNdc = new THREE.Vector2(0, 0);
     this.smoothPointer = new THREE.Vector2(0, 0);
@@ -33,6 +34,7 @@ export class PhoneStage {
     this.raycaster = new THREE.Raycaster();
     this.activePointers = new Set();
     this.tapPointerId = null;
+    this.lastDownHitKey = false;
     this.pointerDownPos = { x: 0, y: 0 };
 
     this._initRenderer();
@@ -169,33 +171,70 @@ export class PhoneStage {
     return this.cameraMode;
   }
 
+  setTouchPadVisible(visible, snap = false) {
+    this.touchPadVisible = Boolean(visible);
+    this._updateCameraGoals();
+    if (snap && this.cameraMode !== 'orbit') {
+      this.camera.position.copy(this.desiredCamPos);
+      this.controls.target.copy(this.desiredTarget);
+      this.camera.lookAt(this.controls.target);
+    }
+  }
+
   _updateCameraGoals() {
     const width = window.innerWidth || 1280;
     const height = window.innerHeight || 720;
     const aspect = Math.max(0.42, this.camera.aspect || 1.6);
     const tanHalfV = Math.tan(THREE.MathUtils.degToRad(this.camera.fov * 0.5));
     const tanHalfH = tanHalfV * aspect;
-    const isPortraitMobile = width <= 780 && aspect < 0.85;
+    const isPortrait = aspect < 0.85;
+    const isPortraitMobile = width <= 780 && isPortrait;
     const isShortViewport = height < 520;
+    const padActive = this.touchPadVisible && this.cameraMode !== 'orbit';
 
     if (this.cameraMode === 'play') {
-      // Exact frustum fit for entire 3310 handset (height 11.7, width 5.3) with clean HUD clearance
-      const halfHeightPad = isShortViewport ? 8.15 : isPortraitMobile ? 7.65 : 7.15;
-      const halfWidthPad = isPortraitMobile ? 3.15 : 3.25;
-      const distV = halfHeightPad / tanHalfV;
-      const distH = halfWidthPad / tanHalfH;
-      const zDist = Math.max(distV, distH) + 1.05;
-      // On portrait mobile, bias target slightly upward so phone sits cleanly below the 2-row top HUD
-      const targetY = isPortraitMobile ? 0.42 : isShortViewport ? 0.14 : 0.02;
-      this.desiredCamPos.set(isPortraitMobile ? 0 : 0.45, targetY + 0.35, zDist);
-      this.desiredTarget.set(0, targetY, 0.25);
+      if (padActive && isPortrait) {
+        // Portrait mobile with bottom on-screen console dock: frame upper handset & large LCD cleanly between top HUD and bottom dock
+        const distH = 2.38 / tanHalfH;
+        const distV = 4.65 / tanHalfV;
+        const zDist = Math.max(distH, distV) + 0.95;
+        const targetY = 1.12;
+        this.desiredCamPos.set(0, targetY + 0.15, zDist);
+        this.desiredTarget.set(0, targetY, 0.55);
+      } else if (padActive && isShortViewport) {
+        // Landscape mobile with left/right split thumb controls: zoom generously on screen between the two side pads
+        const distV = 2.55 / tanHalfV;
+        const distH = 3.85 / tanHalfH;
+        const zDist = Math.max(distV, distH) + 0.92;
+        this.desiredCamPos.set(0, 2.26, zDist);
+        this.desiredTarget.set(0, 2.26, 0.86);
+      } else {
+        // Exact frustum fit for entire 3310 handset (height 11.7, width 5.3) with clean HUD clearance
+        const halfHeightPad = isShortViewport ? 8.15 : isPortraitMobile ? 7.65 : 7.15;
+        const halfWidthPad = isPortraitMobile ? 3.15 : 3.25;
+        const distV = halfHeightPad / tanHalfV;
+        const distH = halfWidthPad / tanHalfH;
+        const zDist = Math.max(distV, distH) + 1.05;
+        const targetY = isPortraitMobile ? 0.42 : isShortViewport ? 0.14 : 0.02;
+        this.desiredCamPos.set(isPortraitMobile ? 0 : 0.45, targetY + 0.35, zDist);
+        this.desiredTarget.set(0, targetY, 0.25);
+      }
     } else if (this.cameraMode === 'closeup') {
-      // Exact frustum fit for entire 84x48 LCD (3.16 x 1.98) + silver bezel + SHMOKIA badge below top HUD
-      const distV = (isShortViewport ? 2.35 : 2.05) / tanHalfV;
-      const distH = 2.15 / tanHalfH;
-      const zDist = Math.max(distV, distH) + 0.92;
-      this.desiredCamPos.set(0, 2.38, zDist);
-      this.desiredTarget.set(0, 2.38, 0.86);
+      if (padActive && isPortrait) {
+        // Portrait closeup with bottom pad: place LCD + SHMOKIA logo cleanly in the upper 55% above the D-pad
+        const distH = 2.08 / tanHalfH;
+        const distV = 3.4 / tanHalfV;
+        const zDist = Math.max(distH, distV) + 0.92;
+        this.desiredCamPos.set(0, 1.38, zDist);
+        this.desiredTarget.set(0, 1.38, 0.86);
+      } else {
+        // Exact frustum fit for entire 84x48 LCD (3.16 x 1.98) + silver bezel + SHMOKIA badge below top HUD
+        const distV = (isShortViewport ? 2.35 : 2.05) / tanHalfV;
+        const distH = (padActive && isShortViewport ? 3.55 : 2.15) / tanHalfH;
+        const zDist = Math.max(distV, distH) + 0.92;
+        this.desiredCamPos.set(0, 2.38, zDist);
+        this.desiredTarget.set(0, 2.38, 0.86);
+      }
     } else {
       // Full-handset 3/4 showcase angle for 3D Orbit inspection
       const distV = (isShortViewport ? 8.2 : 7.4) / tanHalfV;
@@ -228,9 +267,27 @@ export class PhoneStage {
       if (this.activePointers.size > 1) {
         // Multi-touch gesture (e.g., pinch zoom) cancels single-key tap
         this.tapPointerId = null;
+        this.lastDownHitKey = false;
         return;
       }
       this.pointerDownPos = { x: e.clientX, y: e.clientY };
+
+      const rect = this.canvas.getBoundingClientRect();
+      this.pointerNdc.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+      this.pointerNdc.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+
+      // In Play/Closeup modes OrbitControls is disabled: trigger 3D keys immediately on pointerdown for zero-latency gameplay
+      if (this.cameraMode !== 'orbit') {
+        const keyId = this._pickKey(e.pointerType !== 'mouse');
+        if (keyId && this.onKeyClick) {
+          this.lastDownHitKey = true;
+          this.tapPointerId = null;
+          this.onKeyClick(keyId);
+          return;
+        }
+      }
+
+      this.lastDownHitKey = false;
       this.tapPointerId = e.pointerId;
     });
 
@@ -251,14 +308,14 @@ export class PhoneStage {
 
       const dx = e.clientX - this.pointerDownPos.x;
       const dy = e.clientY - this.pointerDownPos.y;
-      const maxDrift = e.pointerType === 'touch' ? 14 : 8;
+      const maxDrift = e.pointerType === 'touch' ? 16 : 8;
       if (Math.hypot(dx, dy) > maxDrift) return; // Ignore orbit drag / swipe release
 
       const rect = this.canvas.getBoundingClientRect();
       this.pointerNdc.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
       this.pointerNdc.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
 
-      const keyId = this._pickKey();
+      const keyId = this._pickKey(e.pointerType !== 'mouse');
       if (keyId && this.onKeyClick) {
         this.onKeyClick(keyId);
       }
@@ -271,11 +328,17 @@ export class PhoneStage {
     });
   }
 
-  _pickKey() {
+  _pickKey(forgiving = false) {
     this.raycaster.setFromCamera(this.pointerNdc, this.camera);
-    const hits = this.raycaster.intersectObjects(this.phone.interactiveMeshes, false);
-    if (hits.length > 0) {
-      return hits[0].object.userData.keyId ?? null;
+    const exactHits = this.raycaster.intersectObjects(this.phone.interactiveMeshes, false);
+    if (exactHits.length > 0) {
+      return exactHits[0].object.userData.keyId ?? null;
+    }
+    if (forgiving && this.phone.hitMeshes?.length) {
+      const padHits = this.raycaster.intersectObjects(this.phone.hitMeshes, false);
+      if (padHits.length > 0) {
+        return padHits[0].object.userData.keyId ?? null;
+      }
     }
     return null;
   }

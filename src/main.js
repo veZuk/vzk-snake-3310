@@ -7,6 +7,7 @@ import { Phone3310 } from './scene/phone-3310.js';
 import { PhoneStage } from './scene/stage.js';
 
 const canvas = document.getElementById('scene-canvas');
+const btnPad = document.getElementById('btn-pad');
 const btnBacklight = document.getElementById('btn-backlight');
 const btnSound = document.getElementById('btn-sound');
 const brandSub = document.getElementById('brand-sub');
@@ -14,6 +15,12 @@ const hudToolbar = document.getElementById('hud-toolbar');
 const groupCam = document.getElementById('group-cam');
 const groupLang = document.getElementById('group-lang');
 const groupCovers = document.getElementById('group-covers');
+const touchPadEl = document.getElementById('touch-pad');
+const dpadZone = document.getElementById('dpad-zone');
+const padLabelSelect = document.getElementById('pad-label-select');
+const padLabelBack = document.getElementById('pad-label-back');
+const dpadButtons = Array.from(document.querySelectorAll('[data-pad-dir]'));
+const padActionButtons = Array.from(document.querySelectorAll('[data-pad-action]'));
 const camButtons = Array.from(document.querySelectorAll('[data-cam]'));
 const langButtons = Array.from(document.querySelectorAll('[data-lang]'));
 const coverButtons = Array.from(document.querySelectorAll('[data-cover]'));
@@ -46,7 +53,21 @@ function loadSavedLang() {
   }
 }
 
+function loadSavedPadPref() {
+  try {
+    const saved = safeStorage?.getItem('snake3310_pad');
+    if (saved === 'on') return true;
+    if (saved === 'off') return false;
+  } catch {
+    // Ignore restricted storage
+  }
+  const coarsePointer = window.matchMedia?.('(hover: none) and (pointer: coarse)')?.matches ?? false;
+  const mobilePortrait = window.innerWidth <= 680 && window.innerHeight > window.innerWidth;
+  return coarsePointer || mobilePortrait;
+}
+
 let currentLang = loadSavedLang();
+let padEnabled = loadSavedPadPref();
 
 const synth = new PiezoSynth();
 const lcd = new LcdRenderer(currentLang);
@@ -55,8 +76,6 @@ let backlightOn = true;
 
 const engine = new SnakeEngine({
   storage: safeStorage,
-  level: 5,
-  mazeIndex: 0,
   onEvent(evt) {
     switch (evt.type) {
       case 'nav':
@@ -149,6 +168,32 @@ function setCamera(mode) {
     btn.classList.toggle('active', active);
     btn.setAttribute('aria-pressed', String(active));
   }
+  syncTouchPadVisibility(false);
+}
+
+function syncTouchPadVisibility(snapCamera = false) {
+  const showPad = padEnabled && stage.cameraMode !== 'orbit';
+  touchPadEl.hidden = !showPad;
+  document.body.classList.toggle('pad-visible', showPad);
+  stage.setTouchPadVisible(showPad, snapCamera);
+  syncHudButtons();
+}
+
+function setPadEnabled(enabled, persist = true) {
+  padEnabled = Boolean(enabled);
+  if (persist) {
+    try {
+      safeStorage?.setItem('snake3310_pad', padEnabled ? 'on' : 'off');
+    } catch {
+      // Ignore restricted storage
+    }
+  }
+  // If user turns pad ON while in 3D Orbit, switch smoothly back to Play so the pad appears immediately
+  if (padEnabled && stage.cameraMode === 'orbit') {
+    setCamera('play');
+    return;
+  }
+  syncTouchPadVisibility(false);
 }
 
 function toggleBacklight() {
@@ -158,6 +203,9 @@ function toggleBacklight() {
 }
 
 function syncHudButtons() {
+  const showPad = padEnabled && stage.cameraMode !== 'orbit';
+  btnPad.classList.toggle('active', showPad);
+  btnPad.setAttribute('aria-pressed', String(showPad));
   btnBacklight.classList.toggle('active', backlightOn);
   btnBacklight.setAttribute('aria-pressed', String(backlightOn));
   btnSound.classList.toggle('active', engine.soundEnabled);
@@ -211,6 +259,20 @@ function setLanguage(lang) {
     }
   }
 
+  btnPad.textContent = s.padLabel;
+  btnPad.title = s.padTitle;
+  touchPadEl.setAttribute('aria-label', s.padGroupLabel);
+  padLabelSelect.textContent = s.padSelect;
+  padLabelBack.textContent = s.padBack;
+  for (const btn of dpadButtons) {
+    const d = btn.dataset.padDir;
+    const label = d === 'up' ? s.padUp : d === 'down' ? s.padDown : d === 'left' ? s.padLeft : s.padRight;
+    btn.setAttribute('aria-label', label);
+  }
+  for (const btn of padActionButtons) {
+    btn.setAttribute('aria-label', btn.dataset.padAction === 'select' ? s.padSelectTitle : s.padBackTitle);
+  }
+
   btnBacklight.title = s.ledTitle;
   btnSound.textContent = s.soundLabel;
   btnSound.title = s.soundTitle;
@@ -251,6 +313,11 @@ for (const btn of coverButtons) {
   });
 }
 
+btnPad.addEventListener('click', () => {
+  setPadEnabled(!padEnabled, true);
+  btnPad.blur();
+});
+
 btnBacklight.addEventListener('click', () => {
   toggleBacklight();
   btnBacklight.blur();
@@ -261,6 +328,106 @@ btnSound.addEventListener('click', () => {
   engine.toggleSound();
   btnSound.blur();
 });
+
+// Ergonomic zero-latency on-screen D-pad (supports tap AND smooth thumb-glide between directions)
+function pulseHaptic() {
+  try {
+    navigator.vibrate?.(8);
+  } catch {
+    // Ignore unsupported platforms
+  }
+}
+
+const DIR_TO_KEY = { up: '2', down: '8', left: '4', right: '6' };
+let activeDpadPointer = null;
+let activeDpadDir = null;
+
+function setDpadVisual(dir) {
+  for (const btn of dpadButtons) {
+    btn.classList.toggle('pressed', btn.dataset.padDir === dir);
+  }
+}
+
+function resolveDpadDirection(clientX, clientY, targetEl) {
+  const directDir = targetEl?.closest?.('[data-pad-dir]')?.dataset?.padDir;
+  if (directDir) return directDir;
+  const rect = dpadZone.getBoundingClientRect();
+  const cx = rect.left + rect.width * 0.5;
+  const cy = rect.top + rect.height * 0.5;
+  const dx = clientX - cx;
+  const dy = clientY - cy;
+  if (Math.hypot(dx, dy) < 14) return null;
+  if (Math.abs(dx) > Math.abs(dy)) {
+    return dx > 0 ? 'right' : 'left';
+  }
+  return dy > 0 ? 'down' : 'up';
+}
+
+function emitDpadDirection(dir) {
+  if (!dir || dir === activeDpadDir) return;
+  activeDpadDir = dir;
+  setDpadVisual(dir);
+  synth.unlock();
+  phone.triggerKeyPress(DIR_TO_KEY[dir]);
+  engine.setDirection(dir);
+  pulseHaptic();
+}
+
+dpadZone.addEventListener('pointerdown', (e) => {
+  if (e.pointerType === 'mouse' && e.button !== 0) return;
+  e.preventDefault();
+  activeDpadPointer = e.pointerId;
+  activeDpadDir = null;
+  try {
+    dpadZone.setPointerCapture?.(e.pointerId);
+  } catch {
+    // Synthetic or already-ended pointers cannot be captured
+  }
+  const dir = resolveDpadDirection(e.clientX, e.clientY, e.target);
+  emitDpadDirection(dir);
+});
+
+dpadZone.addEventListener('pointermove', (e) => {
+  if (e.pointerId !== activeDpadPointer) return;
+  e.preventDefault();
+  // During thumb-glide, resolve direction geometrically from D-pad center so gliding across arms feels fluid
+  const dir = resolveDpadDirection(e.clientX, e.clientY, null);
+  emitDpadDirection(dir);
+});
+
+const releaseDpad = (e) => {
+  if (e.pointerId !== activeDpadPointer) return;
+  activeDpadPointer = null;
+  activeDpadDir = null;
+  setDpadVisual(null);
+};
+
+dpadZone.addEventListener('pointerup', releaseDpad);
+dpadZone.addEventListener('pointercancel', releaseDpad);
+
+// Zero-latency on-screen Navi (OK) & Back (C) buttons
+for (const btn of padActionButtons) {
+  const action = btn.dataset.padAction;
+  btn.addEventListener('pointerdown', (e) => {
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    e.preventDefault();
+    btn.classList.add('pressed');
+    synth.unlock();
+    pulseHaptic();
+    if (action === 'select') {
+      phone.triggerKeyPress('select');
+      engine.pressSelect();
+    } else {
+      phone.triggerKeyPress('back');
+      engine.pressBack();
+    }
+  });
+
+  const clearPressed = () => btn.classList.remove('pressed');
+  btn.addEventListener('pointerup', clearPressed);
+  btn.addEventListener('pointercancel', clearPressed);
+  btn.addEventListener('pointerleave', clearPressed);
+}
 
 // Unlock Web Audio on the very first real pointer gesture
 canvas.addEventListener('pointerdown', () => {
@@ -331,17 +498,26 @@ window.addEventListener('keydown', (e) => {
     toggleBacklight();
     return;
   }
+  if (code === 'KeyG') {
+    e.preventDefault();
+    setPadEnabled(!padEnabled, true);
+    return;
+  }
   if (code === 'KeyM') {
     e.preventDefault();
     engine.toggleSound();
   }
 });
 
-// Touch swipe support on mobile/touchscreens (works cleanly in Play & Closeup modes)
+// Touch swipe support on mobile/touchscreens (works cleanly in Play & Closeup modes on empty screen/LCD area)
 let touchStart = null;
 window.addEventListener('touchstart', (e) => {
   synth.unlock();
-  if (e.touches.length !== 1 || e.target?.closest?.('.hud-top, .hud-bottom')) {
+  if (
+    e.touches.length !== 1 ||
+    stage.lastDownHitKey ||
+    e.target?.closest?.('.hud-top, .hud-bottom, .touch-pad')
+  ) {
     touchStart = null;
     return;
   }
@@ -353,7 +529,7 @@ window.addEventListener('touchcancel', () => {
 }, { passive: true });
 
 window.addEventListener('touchend', (e) => {
-  if (!touchStart || stage.cameraMode === 'orbit') {
+  if (!touchStart || stage.cameraMode === 'orbit' || stage.lastDownHitKey) {
     touchStart = null;
     return;
   }
@@ -362,7 +538,7 @@ window.addEventListener('touchend', (e) => {
   const dy = t.clientY - touchStart.y;
   touchStart = null;
 
-  if (Math.hypot(dx, dy) < 28) return;
+  if (Math.hypot(dx, dy) < 22) return;
   synth.unlock();
 
   if (Math.abs(dx) > Math.abs(dy)) {
@@ -377,9 +553,11 @@ window.addEventListener('touchend', (e) => {
 }, { passive: true });
 
 window.addEventListener('resize', () => stage.resize());
+window.visualViewport?.addEventListener('resize', () => stage.resize());
 
-// Prime initial LCD frame & language immediately so there is no blank flash on first paint
+// Prime initial LCD frame, touch pad state, & language immediately so there is no jump or flash on first paint
 setLanguage(currentLang);
+syncTouchPadVisibility(true);
 lcd.render(engine, 0);
 lcd.stepPersistence(1, true);
 syncHudButtons();
