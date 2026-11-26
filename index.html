@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <link
+      rel="icon"
+      type="image/svg+xml"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23223151'/%3E%3Crect x='5' y='6' width='22' height='14' rx='2' fill='%2393be25'/%3E%3Cpath d='M8 15h8v-4h5v2h-3v4H8z' fill='%2316230e'/%3E%3Crect x='22' y='11' width='2' height='2' fill='%2316230e'/%3E%3Crect x='11' y='23' width='10' height='3' rx='1.5' fill='%232c5da1'/%3E%3C/svg%3E"
+    />
+    <title>SHMOKIA 3310 — Змейка II (Three.js)</title>
+  </head>
+  <body>
+    <div id="app">
+      <canvas id="scene-canvas" aria-label="3D SHMOKIA 3310 Змейка II"></canvas>
+
+      <header class="hud-top">
+        <div class="brand">
+          <span class="brand-dot"></span>
+          <span class="brand-title">SHMOKIA 3310</span>
+          <span class="brand-sub" id="brand-sub">ЗМЕЙКА II · THREE.JS</span>
+        </div>
+        <div class="hud-actions" id="hud-toolbar" role="toolbar" aria-label="Настройки сцены">
+          <div class="segmented" id="group-cam" role="group" aria-label="Камера">
+            <button type="button" data-cam="play" class="active" aria-pressed="true" title="Игровой ракурс (V)">Игра</button>
+            <button type="button" data-cam="closeup" aria-pressed="false" title="Крупный план экрана (V)">Экран</button>
+            <button type="button" data-cam="orbit" aria-pressed="false" title="Свободный 3D-обзор (V)">3D</button>
+          </div>
+
+          <div class="segmented" id="group-lang" role="group" aria-label="Язык интерфейса и меню (EN/RU)">
+            <button type="button" data-lang="ru" class="active" aria-pressed="true" title="Русский язык">RU</button>
+            <button type="button" data-lang="en" aria-pressed="false" title="English language">EN</button>
+          </div>
+
+          <button type="button" id="btn-backlight" class="icon-btn active" aria-pressed="true" title="Подсветка LCD (L)">
+            LED
+          </button>
+          <button type="button" id="btn-sound" class="icon-btn active" aria-pressed="true" title="Звук пьезодинамика (M)">
+            Звук
+          </button>
+
+          <div class="cover-swatches" id="group-covers" role="group" aria-label="Цвет корпуса">
+            <button type="button" data-cover="navy" class="swatch active" aria-pressed="true" style="--c:#243354" title="Тёмно-синий" aria-label="Тёмно-синий"></button>
+            <button type="button" data-cover="silver" class="swatch" aria-pressed="false" style="--c:#9ca6b5" title="Серебристый" aria-label="Серебристый"></button>
+            <button type="button" data-cover="red" class="swatch" aria-pressed="false" style="--c:#8e2532" title="Бордовый" aria-label="Бордовый"></button>
+            <button type="button" data-cover="yellow" class="swatch" aria-pressed="false" style="--c:#c69828" title="Песочно-жёлтый" aria-label="Песочно-жёлтый"></button>
+          </div>
+        </div>
+      </header>
+
+      <footer class="hud-bottom">
+        <div class="controls-hint">
+          <span class="hint-kbd"><kbd>↑ ↓ ← →</kbd> / <kbd>WASD</kbd> / <kbd>2 4 6 8</kbd> <em id="hint-move">поворот</em></span>
+          <span class="hint-kbd"><kbd>Enter</kbd> / <kbd>Space</kbd> <em id="hint-select">выбор·старт</em></span>
+          <span class="hint-kbd"><kbd>P</kbd> / <kbd>Esc</kbd> <em id="hint-pause">пауза</em></span>
+          <span class="hint-kbd"><kbd>V</kbd> <em id="hint-cam">камера</em></span>
+          <span class="hint-kbd"><kbd>L</kbd> <em id="hint-led">подсветка</em></span>
+          <span class="hint-touch" id="hint-touch">Кнопки на 3D-телефоне кликабельны</span>
+        </div>
+      </footer>
+    </div>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

@@ -1,0 +1,20 @@
+{
+  "name": "vzk-snake-3310",
+  "version": "0.1.0",
+  "license": "Unlicense",
+  "private": true,
+  "type": "module",
+  "description": "Retro 3D 3310 Snake II clone (SHMOKIA 3310) built from scratch on Three.js 0.187.0",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1 --port 5185 --strictPort",
+    "build": "vite build",
+    "preview": "vite preview --host 127.0.0.1 --port 5186 --strictPort",
+    "check": "node scripts/check-snake-engine.mjs && node scripts/check-lcd.mjs"
+  },
+  "dependencies": {
+    "three": "0.187.0"
+  },
+  "devDependencies": {
+    "vite": "8.3.8"
+  }
+}
